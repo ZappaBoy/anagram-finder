@@ -19,6 +19,11 @@ class AnagramFinder:
     def _load_dictionary(self):
         self.dictionary = Dictionary(self.language)
 
+    @staticmethod
+    def _preprocess(phrase: str) -> str:
+        phrase = re.sub(r'[^a-zA-Z\s]', '', phrase)
+        return phrase.lower()
+
     def find_similar_words(self, word: str) -> List[str]:
         return self.dictionary.find_similar_words(word)
 
@@ -28,11 +33,18 @@ class AnagramFinder:
             similar_words.remove(word)
         return similar_words
 
-    def find_phrase_anagram(self, phrase: str) -> List[str]:
-        phrase = re.sub(r'[^a-zA-Z\s]', '', phrase)
-        print(phrase)
+    def find_words_anagram(self, phrase: str) -> dict:
+        phrase = self._preprocess(phrase)
         words = phrase.split()
         similar_words = {}
         for word in words:
             similar_words[word] = self.find_similar_words(word)
-        return list(similar_words.items())
+        return similar_words
+
+    def find_phrase_anagrams(self, phrase: str, n_words: int = None, n_anagrams=1) -> List[str]:
+        if n_words is None:
+            n_words = phrase.count(' ') + 1
+        phrase = self._preprocess(phrase)
+        anagrams = self.dictionary.find_phrase_anagrams(phrase, n_words=n_words, n_anagrams=n_anagrams)
+
+        return anagrams

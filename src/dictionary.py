@@ -1,3 +1,4 @@
+import itertools
 import os
 from collections import Counter
 from string import ascii_lowercase
@@ -39,14 +40,13 @@ class Dictionary:
 
         columns = ['word', "length"] + [letter for letter in ascii_lowercase]
         dictionary_df = pd.DataFrame(elaborated_rows, columns=columns)
-        dictionary_df.to_csv(self._dictionary_elaborated_file)
+        dictionary_df.to_csv(self._dictionary_elaborated_file, index=False)
 
     def print_dictionary_info(self):
         print('Dictionary raw file: ' + self._dictionary_raw_file)
         print('Dictionary elaborated file: ' + self._dictionary_elaborated_file)
 
     def find_similar_words(self, word: str) -> List[str]:
-        word = word.lower()
         letters_occurrences = Counter(letter for letter in word)
         query = 'length=={}'.format(len(word))
 
@@ -54,3 +54,69 @@ class Dictionary:
             query += ' & ' + '{}=={}'.format(key, value)
         results = self._dictionary.query(query)
         return results['word'].to_list()
+
+    @staticmethod
+    def _combination_sum(arr, total_sum):
+        ans = []
+        temp = []
+        arr = sorted(list(set(arr)))
+        Dictionary._find_numbers(ans, arr, temp, total_sum, 0)
+        return ans
+
+    @staticmethod
+    def _find_numbers(ans, arr, temp, total_sum, index):
+        if total_sum == 0:
+            ans.append(list(temp))
+            return
+
+        for i in range(index, len(arr)):
+            if (total_sum - arr[i]) >= 0:
+                temp.append(arr[i])
+                Dictionary._find_numbers(ans, arr, temp, total_sum - arr[i], i)
+                temp.remove(arr[i])
+
+    @staticmethod
+    def _is_valid_anagram(anagram, phrase):
+        return sorted(anagram) == sorted(phrase)
+
+    def _get_anagram_in_mask(self, mask, usable_words, original_phrase, n_anagrams: int = 1):
+        anagrams = []
+        words_to_combine = []
+        for word_length in mask:
+            words_to_combine.append(usable_words[word_length])
+        combined_phrases = list(itertools.product(*words_to_combine))
+
+        for phrase in combined_phrases:
+            phrase = ' '.join(phrase)
+            if self._is_valid_anagram(phrase, original_phrase):
+                anagrams.append(phrase)
+                if len(anagrams) >= n_anagrams:
+                    return anagrams
+        return anagrams
+
+    def find_phrase_anagrams(self, phrase: str, n_words: int, n_anagrams: int = 1) -> List[str]:
+        original_phrase = phrase
+        phrase = phrase.replace(' ', '')
+        letters_occurrences = Counter(letter for letter in phrase)
+        anagrams = []
+
+        null_columns = list(set(ascii_lowercase).difference(letters_occurrences.keys()))
+        query = 'length<={}'.format(len(phrase))
+        for letter in null_columns:
+            query += ' & ' + '{}==0'.format(letter)
+        candidate_words = self._dictionary.query(query)
+        words_lengths = Counter(candidate_words.length)
+        usable_words = {}
+        for word_length in words_lengths:
+            fitted_words = candidate_words.loc[candidate_words['length'] == word_length]['word'].to_list()
+            usable_words[word_length] = fitted_words
+
+        masks = self._combination_sum(list(words_lengths.keys()), len(phrase))
+        masks = [mask for mask in masks if len(mask) <= n_words]
+        for mask in masks:
+            anagrams_in_mask = self._get_anagram_in_mask(mask, usable_words, original_phrase, n_anagrams=n_anagrams)
+            anagrams.extend(anagrams_in_mask)
+            if len(anagrams) >= n_anagrams:
+                return anagrams
+
+        return anagrams
