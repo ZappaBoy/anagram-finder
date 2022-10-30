@@ -1,4 +1,3 @@
-import itertools
 import os
 from collections import Counter
 from string import ascii_lowercase
@@ -79,19 +78,34 @@ class Dictionary:
     def _is_valid_anagram(anagram, phrase):
         return sorted(anagram) == sorted(phrase)
 
+    def product(*args, repeat=1):
+        # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+        # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+        pools = [tuple(pool) for pool in args] * repeat
+        result = [[]]
+        for pool in pools:
+            result = [x + [y] for x in result for y in pool]
+        for prod in result:
+            yield tuple(prod)
+
     def _get_anagram_in_mask(self, mask, usable_words, original_phrase, n_anagrams: int = 1):
         anagrams = []
         words_to_combine = []
         for word_length in mask:
             words_to_combine.append(usable_words[word_length])
-        combined_phrases = list(itertools.product(*words_to_combine))
 
-        for phrase in combined_phrases:
-            phrase = ' '.join(phrase)
-            if self._is_valid_anagram(phrase, original_phrase):
-                anagrams.append(phrase)
-                if len(anagrams) >= n_anagrams:
-                    return anagrams
+        iterators = [len(words) for words in words_to_combine]
+        while all(iterator == 0 for iterator in iterators):
+            phrase = ''
+
+        # combined_phrases = list(itertools.product(*words_to_combine))
+        #
+        # for phrase in combined_phrases:
+        #     phrase = ' '.join(phrase)
+        #     if self._is_valid_anagram(phrase, original_phrase):
+        #         anagrams.append(phrase)
+        #         if len(anagrams) >= n_anagrams:
+        #             return anagrams
         return anagrams
 
     def find_phrase_anagrams(self, phrase: str, n_words: int, n_anagrams: int = 1) -> List[str]:
@@ -104,6 +118,8 @@ class Dictionary:
         query = 'length<={}'.format(len(phrase))
         for letter in null_columns:
             query += ' & ' + '{}==0'.format(letter)
+        for letter in letters_occurrences.keys():
+            query += ' & ' + '{}<={}'.format(letter, letters_occurrences[letter])
         candidate_words = self._dictionary.query(query)
         words_lengths = Counter(candidate_words.length)
         usable_words = {}
