@@ -1,3 +1,4 @@
+import itertools
 import os
 from collections import Counter
 from string import ascii_lowercase
@@ -76,39 +77,19 @@ class Dictionary:
 
     @staticmethod
     def _is_valid_anagram(anagram, phrase):
-        return sorted(anagram) == sorted(phrase)
+        return sorted(anagram.replace(" ", "")) == sorted(phrase.replace(" ", ""))
 
-    def product(*args, repeat=1):
-        # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
-        # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
-        pools = [tuple(pool) for pool in args] * repeat
-        result = [[]]
-        for pool in pools:
-            result = [x + [y] for x in result for y in pool]
-        for prod in result:
-            yield tuple(prod)
-
-    def _get_anagram_in_mask(self, mask, usable_words, original_phrase, n_anagrams: int = 1):
-        anagrams = []
+    def _get_anagram_in_mask(self, mask, usable_words, original_phrase):
         words_to_combine = []
         for word_length in mask:
             words_to_combine.append(usable_words[word_length])
 
-        iterators = [len(words) for words in words_to_combine]
-        while all(iterator == 0 for iterator in iterators):
-            phrase = ''
+        anagrams = [' '.join(phrase) for phrase in itertools.product(*words_to_combine) if
+                    self._is_valid_anagram(' '.join(phrase), original_phrase)]
 
-        # combined_phrases = list(itertools.product(*words_to_combine))
-        #
-        # for phrase in combined_phrases:
-        #     phrase = ' '.join(phrase)
-        #     if self._is_valid_anagram(phrase, original_phrase):
-        #         anagrams.append(phrase)
-        #         if len(anagrams) >= n_anagrams:
-        #             return anagrams
         return anagrams
 
-    def find_phrase_anagrams(self, phrase: str, n_words: int, n_anagrams: int = 1) -> List[str]:
+    def find_phrase_anagrams(self, phrase: str, n_words: int, n_anagrams: int = None) -> List[str]:
         original_phrase = phrase
         phrase = phrase.replace(' ', '')
         letters_occurrences = Counter(letter for letter in phrase)
@@ -130,9 +111,9 @@ class Dictionary:
         masks = self._combination_sum(list(words_lengths.keys()), len(phrase))
         masks = [mask for mask in masks if len(mask) <= n_words]
         for mask in masks:
-            anagrams_in_mask = self._get_anagram_in_mask(mask, usable_words, original_phrase, n_anagrams=n_anagrams)
+            anagrams_in_mask = self._get_anagram_in_mask(mask, usable_words, original_phrase)
             anagrams.extend(anagrams_in_mask)
-            if len(anagrams) >= n_anagrams:
+            if n_anagrams is not None and len(anagrams) >= n_anagrams:
                 return anagrams
 
         return anagrams

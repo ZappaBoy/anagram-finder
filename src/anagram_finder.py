@@ -41,9 +41,9 @@ class AnagramFinder:
             similar_words[word] = self.find_similar_words(word)
         return similar_words
 
-    def find_phrase_anagrams(self, phrase: str, n_words: int = None, n_anagrams=1) -> List[str]:
+    def find_phrase_anagrams(self, phrase: str, n_words: int = None, n_anagrams=None) -> List[str]:
         if n_words is None:
-            n_words = phrase.count(' ') + 1
+            n_words = len(phrase.replace(' ', ''))
         phrase = self._preprocess(phrase)
         anagrams = self.dictionary.find_phrase_anagrams(phrase, n_words=n_words, n_anagrams=n_anagrams)
 
