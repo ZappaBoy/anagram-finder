@@ -7,6 +7,9 @@ from typing import List
 import pandas
 import pandas as pd
 
+from utils import parallelize
+
+THREAD_NUMBER = 8
 dictionaries_dir = os.path.join(os.path.dirname(__file__), 'dictionaries')
 
 
@@ -110,9 +113,12 @@ class Dictionary:
 
         masks = self._combination_sum(list(words_lengths.keys()), len(phrase))
         masks = [mask for mask in masks if len(mask) <= n_words]
-        for mask in masks:
-            anagrams_in_mask = self._get_anagram_in_mask(mask, usable_words, original_phrase)
-            anagrams.extend(anagrams_in_mask)
+
+        results = parallelize(THREAD_NUMBER, self._get_anagram_in_mask,
+                              [(mask, usable_words, original_phrase) for mask in masks], chunksize=1)
+
+        for result in results:
+            anagrams.extend(result)
             if n_anagrams is not None and len(anagrams) >= n_anagrams:
                 return anagrams
 
